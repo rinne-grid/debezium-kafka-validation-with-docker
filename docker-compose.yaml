@@ -1,0 +1,99 @@
+version: '3.8'
+volumes:
+  zookeeper-data:
+    driver: local
+  postgres-data:
+    driver: local
+  kafka-data:
+    driver: local
+networks:
+  kafka-network:
+services:
+
+  zookeeper:
+    image: quay.io/debezium/zookeeper:${DEBEZIUM_VERSION}
+    ports:
+     - "2181:2181"
+     - "2888:2888"
+     - "3888:3888"
+    volumes:
+     - zookeeper-data:/var/lib/zookeeper/data
+     - ./zookeeper/log:/var/lib/zookeeper/log
+    networks:
+      - kafka-network
+
+  kafka:
+    image: quay.io/debezium/kafka:${DEBEZIUM_VERSION}
+    ports:
+     - "9092:9092"
+     - "9093:9093"
+    depends_on:
+     - zookeeper
+    environment:
+     - ZOOKEEPER_CONNECT=zookeeper:2181
+     - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+     - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9093
+     - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka:9092,EXTERNAL://localhost:9093
+     - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - kafka-network
+
+  postgres:
+    image: quay.io/debezium/example-postgres:${DEBEZIUM_VERSION}
+    ports:
+     - "5432:5432"
+    environment:
+     - POSTGRES_USER=postgres
+     - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - kafka-network
+
+  connect:
+    image: quay.io/debezium/connect:${DEBEZIUM_VERSION}
+    ports:
+     - "8083:8083"
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+     - BOOTSTRAP_SERVERS=kafka:9092
+     - GROUP_ID=1
+     - CONFIG_STORAGE_TOPIC=my_connect_configs
+     - OFFSET_STORAGE_TOPIC=my_connect_offsets
+     - STATUS_STORAGE_TOPIC=my_connect_statuses
+    networks:
+      - kafka-network
+# For testing newer connector versions, unpack the connector archive into this
+# directory and uncomment the lines below
+    # volumes:
+    #   - ./debezium-connector-postgres:/kafka/connect/debezium-connector-postgres
+
+  kafka-rest:
+    image: confluentinc/cp-kafka-rest:latest
+    restart: always
+    ports:
+      - "8086:8086"
+    depends_on:
+      - kafka
+    environment:
+     - KAFKA_REST_BOOTSTRAP_SERVERS=kafka:9092
+     - KAFKA_REST_HOST_NAME=kafka-rest
+     - KAFKA_REST_LISTENERS=http://kafka-rest:8086
+    networks:
+      - kafka-network
+
+  kafka-topic-ui:
+    image: landoop/kafka-topics-ui:latest
+    depends_on:
+        - kafka-rest
+    environment:
+      - KAFKA_REST_PROXY_URL="http://kafka-rest:8086"
+      - PROXY="true"
+    ports:
+      - "8888:8000"
+    networks:
+      - kafka-network
