@@ -47,7 +47,12 @@ $ curl --location --request POST 'http://localhost:8083/connectors/' \
     "database.password": "postgres",
     "database.server.name": "mysite",
     "database.dbname" : "postgres", 
-    "table.include.list": "public.polls_choice,public.polls_question"
+    "table.include.list": "public.polls_outbox",
+    "transform": "outbox",
+    "transform.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "value.converter": "io.debezium.converters.ByteBufferConverter",
+    "value.converter.schemas.enable": "false",
+    "value.converter.delegate.converter.type": "org.apache.kafka.connect.json.JsonConverter"
   }
 }'
 ```
@@ -55,6 +60,20 @@ $ curl --location --request POST 'http://localhost:8083/connectors/' \
 * Python3.10のインストール
 
 * モジュールインストール
+
+* protocのインストール
+
+  * https://github.com/protocolbuffers/protobuf/releases/tag/v21.6
+
+    * Windows: protoc-21.6-win64.zip
+    * macOS: protoc-21.6-osx-x86_64.zip
+
+
+[//]: # (```shell)
+[//]: # ($ cd ./proto)
+[//]: # ($ protoc ./question.proto --python_out=./output --descriptor_set_out=question.desc)
+[//]: # ($ cp ./output/question_pb2.py ../mysite/proto)
+[//]: # (```)
 
 ```shell
 # 必要に応じて仮想環境作成

@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 
 
@@ -10,3 +12,11 @@ class Choice(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     choice_text = models.CharField(max_length=200)
     votes = models.IntegerField(default=0)
+
+
+class Outbox(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    aggregatetype = models.CharField(max_length=255)
+    aggregateid = models.CharField(max_length=255)
+    type = models.CharField(max_length=255)
+    payload = models.BinaryField()

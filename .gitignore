@@ -211,7 +211,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-.local_document.md
 mysql-connector.json
 postgresql-connector.json
 zookeeper/
