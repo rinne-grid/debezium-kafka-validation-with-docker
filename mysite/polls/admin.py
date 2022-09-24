@@ -46,6 +46,7 @@ class QuestionAdmin(admin.ModelAdmin):
         outbox = Outbox(
             aggregatetype="question",
             aggregateid=obj.id,
+            type="question_created",
             payload=json.dumps(question).encode(),
         )
         outbox.save()
